@@ -1,6 +1,6 @@
 # Research Intelligence Pipeline
 
-[![CI](https://github.com/your-org/research-intel-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/research-intel-pipeline/actions)
+[![CI](https://github.com/SissiFeng/research-intel-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/SissiFeng/research-intel-pipeline/actions)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-311/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -111,7 +111,7 @@ Real-time scientific research analytics pipeline for AI, ML, and Computational B
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/your-org/research-intel-pipeline.git
+git clone https://github.com/SissiFeng/research-intel-pipeline.git
 cd research-intel-pipeline
 cp .env.example .env
 # Edit .env with your Supabase credentials
@@ -297,3 +297,20 @@ make clean
 ## License
 
 MIT
+
+---
+
+## Live Data
+
+The pipeline is connected to a Supabase PostgreSQL instance. Sample ingestion run:
+
+```
+2026-04-07 06:12:30 [info] ingested  category=cs.AI   count=50
+2026-04-07 06:12:33 [info] ingested  category=cs.LG   count=50
+2026-04-07 06:12:37 [info] ingested  category=cs.MA   count=50
+2026-04-07 06:12:40 [info] ingested  category=q-bio.QM count=50
+2026-04-07 06:12:43 [info] cycle_complete  total=200
+```
+
+**200 papers ingested** across AI, ML, multi-agent systems, and computational biology.
+Data available at: [Supabase Dashboard](https://supabase.com/dashboard/project/mcqosvppamuijdxjryrc)
