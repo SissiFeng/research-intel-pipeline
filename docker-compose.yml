@@ -1,0 +1,81 @@
+version: "3.9"
+
+# Research Intelligence Pipeline — Docker Compose
+# Producers write directly to Supabase (no message broker needed for 15-min polling).
+
+x-common-env: &common-env
+  SUPABASE_DB_URL: ${SUPABASE_DB_URL}
+  POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-3600}
+
+services:
+  # ── arXiv Producer ──────────────────────────────────────────────────────────
+  arxiv-producer:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    image: research-intel/arxiv-producer:latest
+    container_name: arxiv-producer
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      ARXIV_CATEGORIES: ${ARXIV_CATEGORIES:-cs.AI,cs.LG,q-bio.NC}
+      ARXIV_MAX_RESULTS: ${ARXIV_MAX_RESULTS:-100}
+    command: python arxiv_producer.py
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - pipeline-net
+
+  # ── OpenAlex Producer ───────────────────────────────────────────────────────
+  openalex-producer:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    image: research-intel/openalex-producer:latest
+    container_name: openalex-producer
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      OPENALEX_MAX_RESULTS: ${OPENALEX_MAX_RESULTS:-200}
+      OPENALEX_MAILTO: ${OPENALEX_MAILTO:-pipeline@example.com}
+    command: python openalex_producer.py
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - pipeline-net
+
+  # ── Streamlit Dashboard ─────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    image: research-intel/dashboard:latest
+    container_name: dashboard
+    restart: unless-stopped
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    environment:
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL}
+    command: >
+      streamlit run app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.headless=true
+      --browser.gatherUsageStats=false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - pipeline-net
+
+networks:
+  pipeline-net:
+    driver: bridge

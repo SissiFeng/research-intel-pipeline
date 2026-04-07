@@ -1,0 +1,13 @@
+name: research-intel-pipeline
+environments:
+  default:
+    connections:
+      - name: supabase_pg
+        type: postgres
+        host: ${SUPABASE_PG_HOST}
+        port: 5432
+        database: postgres
+        username: postgres
+        password: ${SUPABASE_PG_PASSWORD}
+        schema: public
+        ssl_mode: require

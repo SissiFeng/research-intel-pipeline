@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "dev", "feature/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint:
+    name: Lint Python (ruff)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff==0.3.5
+
+      - name: Run ruff check (linting)
+        run: ruff check producers/ consumers/ dashboard/ bruin/
+
+      - name: Run ruff format check
+        run: ruff format --check producers/ consumers/ dashboard/ bruin/
+
+  type-check:
+    name: Type Check (mypy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install mypy==1.9.0 types-psycopg2
+          pip install -r producers/requirements.txt || true
+          pip install -r consumers/requirements.txt || true
+
+      - name: Run mypy on producers
+        run: mypy producers/ --ignore-missing-imports --strict
+        continue-on-error: true  # Non-blocking until stubs are complete
+
+      - name: Run mypy on consumers
+        run: mypy consumers/ --ignore-missing-imports --strict
+        continue-on-error: true
+
+  test:
+    name: Unit Tests (pytest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-cov
+          pip install -r producers/requirements.txt || true
+          pip install -r consumers/requirements.txt || true
+          pip install scikit-learn scipy numpy psycopg2-binary || true
+
+      - name: Run tests
+        run: pytest tests/ -v --cov=producers --cov=consumers --cov-report=xml
+        if: hashFiles('tests/**/*.py') != ''
+
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build producers image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./producers
+          push: false
+          tags: research-intel/arxiv-producer:ci
+
+      - name: Build consumers image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./consumers
+          push: false
+          tags: research-intel/arxiv-consumer:ci
+
+      - name: Build dashboard image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./dashboard
+          push: false
+          tags: research-intel/dashboard:ci
+
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: ./terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./terraform
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform
